@@ -1,0 +1,8 @@
+#request
+geometry_msgs/PoseStamped pose
+string planning_type
+---
+#response
+bool success
+moveit_msgs/RobotTrajectory traj
+ 
