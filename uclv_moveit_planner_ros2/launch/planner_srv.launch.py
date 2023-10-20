@@ -31,7 +31,7 @@ def generate_launch_description():
         Node(
             package='uclv_moveit_planner_ros2',
             executable='planner_srv',
-            name='planner_srv',
+            name='uclv_planner_srv',
             output='screen',
             parameters=[],
             arguments=[planning_time_],

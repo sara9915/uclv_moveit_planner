@@ -8,19 +8,22 @@ namespace uclv
     class PlannerService : public rclcpp::Node
     {
     public:
-        PlannerService() : Node("planner_service")
+        PlannerService(const rclcpp::NodeOptions &options) : Node("uclv_planner_service", options), node_(std::make_shared<rclcpp::Node>("planner_service")), 
+                                                             executor_(std::make_shared<rclcpp::executors::SingleThreadedExecutor>())
         {
-            // Store the node as a shared pointer
-            node_ = std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node *) {});
-
+            executor_->add_node(node_);
+            executor_thread_ = std::thread([this]()
+                                           { this->executor_->spin(); });
+            executor_thread_.detach();
+            
             // Create the service
             planner_service_ = this->create_service<uclv_moveit_planner_interface::srv::PlannerSrv>(
                 "planner_service",
                 std::bind(&PlannerService::handle_service_request, this, std::placeholders::_1, std::placeholders::_2));
 
-            // Create the planner object
-            const std::string planning_group = "yaskawa_arm";
-            planner_ = std::make_unique<PlannerMoveIt>(node_, planning_group);
+            planner_moveit_ = std::make_shared<PlannerMoveIt>(node_,"yaskawa_arm");
+
+            std::cout << BOLDGREEN << "Planner service ready!" << RESET << std::endl;
         }
 
     private:
@@ -33,14 +36,14 @@ namespace uclv
             if (request->planning_type == "joint")
             {
                 moveit::planning_interface::MoveGroupInterface::Plan plan;
-                success = planner_->joint_path_planner(plan, request->pose.pose);
+                success = planner_moveit_->joint_path_planner(plan, request->pose.pose);
                 traj_ = plan.trajectory_;
             }
             else if (request->planning_type == "cartesian")
             {
                 std::vector<geometry_msgs::msg::Pose> target_poses;
                 target_poses.push_back(request->pose.pose);
-                success = planner_->cartesian_path_planner(traj_,target_poses);
+                success = planner_moveit_->cartesian_path_planner(traj_, target_poses);
             }
             else
             {
@@ -53,8 +56,10 @@ namespace uclv
         }
 
         rclcpp::Service<uclv_moveit_planner_interface::srv::PlannerSrv>::SharedPtr planner_service_;
-        std::unique_ptr<PlannerMoveIt> planner_;
-        std::shared_ptr<rclcpp::Node> node_;
+        rclcpp::Node::SharedPtr node_;
+        rclcpp::Executor::SharedPtr executor_;
+        std::thread executor_thread_;
+        std::shared_ptr<PlannerMoveIt> planner_moveit_;
     };
 
 } // namespace uclv
@@ -62,8 +67,11 @@ namespace uclv
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<uclv::PlannerService>();
-    rclcpp::spin(node);
+    rclcpp::NodeOptions node_options;
+    node_options.automatically_declare_parameters_from_overrides(true);
+    auto planner_srv_node = std::make_shared<uclv::PlannerService>(node_options);
+    rclcpp::spin(planner_srv_node);
+
     rclcpp::shutdown();
     return 0;
 }

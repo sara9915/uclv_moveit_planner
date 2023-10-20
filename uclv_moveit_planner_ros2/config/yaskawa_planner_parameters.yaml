@@ -1,8 +1,0 @@
-planning_time: 10.0
-vel_scaling: 1
-acc_scaling: 1
-num_joints: 0
-planner_type: "RRTStar"
-planning_group: "yaskawa_arm"
-
-
