@@ -13,27 +13,61 @@ from moveit_configs_utils.launches import generate_demo_launch
 
 def generate_launch_description():
 
-    planning_time_ = LaunchConfiguration('planning_time_')
-    vel_scaling_ = LaunchConfiguration('vel_scaling_')
-    acc_scaling_ = LaunchConfiguration('acc_scaling_')
-    planner_type_ = LaunchConfiguration('planner_type_')
-    planning_group_ = LaunchConfiguration('planning_group_')
+    planning_time = LaunchConfiguration('planning_time')
+    vel_scaling = LaunchConfiguration('vel_scaling')
+    acc_scaling = LaunchConfiguration('acc_scaling')
+    planner_type = LaunchConfiguration('planner_type')
+    planning_group = LaunchConfiguration('planning_group')
 
     planning_time_arg = DeclareLaunchArgument(
-        name='planning_time_',
-        default_value= "10",
+        name='planning_time',
+        default_value= "10.0",
         description='Planning time'
+    )
+
+    vel_scaling_arg = DeclareLaunchArgument(
+        name='vel_scaling',
+        default_value= "0.5",
+        description='Velocity scaling'
+    )
+
+    acc_scaling_arg = DeclareLaunchArgument(
+        name='acc_scaling',
+        default_value= "0.5",
+        description='Acceleration scaling'
+    )
+
+    planner_type_arg = DeclareLaunchArgument(
+        name='planner_type',
+        default_value= "RRTConnect",
+        description='Planner type'
+    )
+
+    planning_group_arg = DeclareLaunchArgument(
+        name='planning_group',
+        default_value= "yaskawa_arm",
+        description='Planning group'
     )
 
     # Run the nodes
     return LaunchDescription([
         planning_time_arg,
+        vel_scaling_arg,
+        acc_scaling_arg,
+        planner_type_arg,
+        planning_group_arg,
         Node(
             package='uclv_moveit_planner_ros2',
             executable='planner_srv',
             name='uclv_planner_srv',
             output='screen',
-            parameters=[],
-            arguments=[planning_time_],
+            emulate_tty=True,
+            parameters=[
+                {"planning_time": planning_time},
+                {"vel_scaling": vel_scaling},
+                {"acc_scaling": acc_scaling},
+                {"planner_type": planner_type},
+                {"planning_group": planning_group},
+            ],
         )
     ])    

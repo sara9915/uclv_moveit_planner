@@ -49,4 +49,19 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+add_executable(execute_traj_as src/execute_action_server.cpp)
+ament_target_dependencies(execute_traj_as rclcpp geometry_msgs moveit_ros_planning_interface uclv_utilities uclv_moveit_planner_interface)
+install(TARGETS
+  execute_traj_as
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+add_executable(demo src/test_execution_moveit.cpp)
+ament_target_dependencies(demo rclcpp geometry_msgs moveit_ros_planning_interface uclv_utilities uclv_moveit_planner_interface)
+install(TARGETS
+  demo
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
 ament_package()

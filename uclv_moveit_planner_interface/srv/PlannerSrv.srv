@@ -1,6 +1,7 @@
 #request
 geometry_msgs/PoseStamped pose
 string planning_type
+string target_frame
 ---
 #response
 bool success

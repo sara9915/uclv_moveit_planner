@@ -27,7 +27,7 @@ namespace uclv
             joint_model_group = move_group.getCurrentState()->getJointModelGroup(planning_group);
             num_joints = joint_model_group->getVariableNames().size();
             set_planning_parameters();
-
+            std::cout << "\n\n\n\n" << std::endl;
             std::cout << BOLDMAGENTA << "MoveIt Planner successfully created! " << RESET << std::endl;
             std::cout << BOLDWHITE << "Selected planning group: " << RESET << planning_group << std::endl;
         }
@@ -36,7 +36,7 @@ namespace uclv
         {
             joint_model_group = move_group.getCurrentState()->getJointModelGroup(planning_group);
             update_planning_parameters(planning_time_, vel_scaling_, acc_scaling_, planner_type_);
-
+            std::cout << "\n\n\n\n" << std::endl;
             std::cout << BOLDMAGENTA << "MoveIt Planner successfully created! " << RESET << std::endl;
             std::cout << BOLDWHITE << "Selected planning group: " << RESET << planning_group << std::endl;
         }
@@ -166,7 +166,7 @@ namespace uclv
             while (!getTransform_)
                 getTransform_ = uclv::getTransform(node_, target_frame, source_frame, target_T_source_);
 
-            uclv::print_geometry_transform(target_T_source_.transform);
+            // uclv::print_geometry_transform(target_T_source_.transform);
 
             geometry_msgs::msg::Transform base_T_target_ = uclv::geometry_2_transform(target_pose.pose);
 
