@@ -3,5 +3,12 @@
     uri: https://github.com/sara9915/yaskawa_moveit_config_ros2.git
     version: main
 
+- git:
+    local-name: gazebo_simulation_ros2
+    uri: https://github.com/sara9915/gazebo_simulation_ros2.git
+    version: main
+
+    
+
 
 
