@@ -49,6 +49,7 @@ public:
         planner_request->pose.pose.orientation.y = 0.510;
         planner_request->pose.pose.orientation.z = -0.506;
         planner_request->pose.pose.orientation.w = -0.495;
+        planner_request->start_joints = std::vector<double>();
 
         auto planner_response = planner_client_->async_send_request(planner_request);
 
@@ -175,13 +176,8 @@ int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     auto demo_node = std::make_shared<DemoNode>();
-    rclcpp::spin(std::make_shared<DemoNode>());
+    rclcpp::spin(demo_node);
 
-    // rclcpp::executors::MultiThreadedExecutor executor;
-    // executor.add_node(demo_node);
-
-    // std::cout << "Starting client node, shut down with CTRL-C" << std::endl;
-    // executor.spin();
     rclcpp::shutdown();
 
     return 0;

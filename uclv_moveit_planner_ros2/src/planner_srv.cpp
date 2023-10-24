@@ -51,7 +51,6 @@ namespace uclv
         }
 
     private:
-
         /**
          * @brief Callback function for the planner service.
          * @param request The request data for the service. It contains the target frame and the target pose.
@@ -68,14 +67,40 @@ namespace uclv
             if (request->planning_type == "joint")
             {
                 moveit::planning_interface::MoveGroupInterface::Plan plan;
-                success = planner_moveit_->joint_path_planner(plan, target_pose);
+                if (request->start_joints.empty())
+                {
+                    // NULL start pose
+                    success = planner_moveit_->joint_path_planner(plan, target_pose);
+                }
+                else
+                {
+                    std::vector<double> start_joints;
+                    start_joints.resize(planner_moveit_->num_joints);
+                    start_joints = request->start_joints;
+                    // std::cout << BOLDWHITE << "Start joints: " << RESET;
+                    // for (int i = 0; i < int(start_joints.size()); i++)
+                    //     std::cout << start_joints[i] << " ";
+                    // std::cout << std::endl;
+
+                    success = planner_moveit_->joint_path_planner(plan, start_joints, target_pose);
+                }
                 traj_ = plan.trajectory_;
             }
             else if (request->planning_type == "cartesian")
             {
                 std::vector<geometry_msgs::msg::Pose> target_poses;
                 target_poses.push_back(target_pose);
-                success = planner_moveit_->cartesian_path_planner(traj_, target_poses);
+                if (request->start_joints.empty())
+                {
+                    success = planner_moveit_->cartesian_path_planner(traj_, target_poses);
+                }
+                else
+                {
+                    std::vector<double> start_joints;
+                    start_joints.resize(planner_moveit_->num_joints);
+                    start_joints = request->start_joints;
+                    success = planner_moveit_->cartesian_path_planner(traj_, start_joints, target_poses);
+                }
             }
             else
             {
@@ -115,5 +140,3 @@ int main(int argc, char **argv)
     rclcpp::shutdown();
     return 0;
 }
-
-

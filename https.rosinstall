@@ -1,0 +1,7 @@
+- git:
+    local-name: yaskawa_moveit_config_ros2
+    uri: https://github.com/sara9915/yaskawa_moveit_config_ros2.git
+    version: main
+
+
+

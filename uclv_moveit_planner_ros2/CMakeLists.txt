@@ -63,5 +63,20 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# add_executable(pp_traj_server src/pp_traj_server.cpp)
+# ament_target_dependencies(pp_traj_server rclcpp geometry_msgs moveit_ros_planning_interface uclv_utilities uclv_moveit_planner_interface)
+# install(TARGETS
+#   pp_traj_server
+#   DESTINATION lib/${PROJECT_NAME}
+# )
+
+# add_executable(test_pp_client src/test_pp_client.cpp)
+# ament_target_dependencies(test_pp_client rclcpp geometry_msgs moveit_ros_planning_interface uclv_utilities uclv_moveit_planner_interface)
+# install(TARGETS
+#   test_pp_client
+#   DESTINATION lib/${PROJECT_NAME}
+# )
+
+
 
 ament_package()

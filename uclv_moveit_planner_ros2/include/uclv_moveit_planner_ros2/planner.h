@@ -2,6 +2,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <optional>
 
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
+
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "geometry_msgs/geometry_msgs/msg/pose.h"
 
@@ -14,6 +18,9 @@ namespace uclv
         const moveit::core::JointModelGroup *joint_model_group;
         moveit::core::RobotStatePtr start_state;
         moveit::planning_interface::MoveGroupInterface move_group;
+
+        robot_model_loader::RobotModelLoader robot_model_loader;
+
         double planning_time = 10.0;
         double vel_scaling = 1;
         double acc_scaling = 1;
@@ -22,21 +29,33 @@ namespace uclv
 
         /***************** METHODS **************/
         // Constructor
-        PlannerMoveIt(const rclcpp::Node::SharedPtr node, const std::string &planning_group) : move_group(node, planning_group)
+        PlannerMoveIt(const rclcpp::Node::SharedPtr node, const std::string &planning_group) : move_group(node, planning_group), robot_model_loader(node)
         {
             joint_model_group = move_group.getCurrentState()->getJointModelGroup(planning_group);
             num_joints = joint_model_group->getVariableNames().size();
+
+            const moveit::core::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+            start_state = moveit::core::RobotStatePtr(new moveit::core::RobotState(kinematic_model));
+
             set_planning_parameters();
-            std::cout << "\n\n\n\n" << std::endl;
+            std::cout << "\n\n\n\n"
+                      << std::endl;
             std::cout << BOLDMAGENTA << "MoveIt Planner successfully created! " << RESET << std::endl;
             std::cout << BOLDWHITE << "Selected planning group: " << RESET << planning_group << std::endl;
         }
 
-        PlannerMoveIt(const rclcpp::Node::SharedPtr node, const std::string &planning_group, const double &planning_time_, const double &vel_scaling_, const double &acc_scaling_, const std::string planner_type_) : move_group(node, planning_group)
+        PlannerMoveIt(const rclcpp::Node::SharedPtr node, const std::string &planning_group, const double &planning_time_, const double &vel_scaling_, const double &acc_scaling_, const std::string planner_type_) : move_group(node, planning_group), robot_model_loader(node)
         {
             joint_model_group = move_group.getCurrentState()->getJointModelGroup(planning_group);
+            num_joints = joint_model_group->getVariableNames().size();
+
             update_planning_parameters(planning_time_, vel_scaling_, acc_scaling_, planner_type_);
-            std::cout << "\n\n\n\n" << std::endl;
+
+            const moveit::core::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+            start_state = moveit::core::RobotStatePtr(new moveit::core::RobotState(kinematic_model));
+
+            std::cout << "\n\n\n\n"
+                      << std::endl;
             std::cout << BOLDMAGENTA << "MoveIt Planner successfully created! " << RESET << std::endl;
             std::cout << BOLDWHITE << "Selected planning group: " << RESET << planning_group << std::endl;
         }
@@ -116,6 +135,15 @@ namespace uclv
             return success;
         }
 
+        bool joint_path_planner(moveit::planning_interface::MoveGroupInterface::Plan &plan, const std::vector<double> &start_pose, const geometry_msgs::msg::Pose &target_pose)
+        {
+            start_state->setJointGroupPositions(joint_model_group, start_pose);
+            move_group.setStartState(*start_state);
+            move_group.setPoseTarget(target_pose);
+            bool success = (move_group.plan(plan) == moveit::core::MoveItErrorCode::SUCCESS);
+            return success;
+        }
+
         bool joint_path_planner(moveit::planning_interface::MoveGroupInterface::Plan &plan, const geometry_msgs::msg::Pose &target_pose)
         {
             move_group.setStartStateToCurrentState();
@@ -140,6 +168,23 @@ namespace uclv
 
         bool cartesian_path_planner(moveit_msgs::msg::RobotTrajectory &trajectory, std::vector<geometry_msgs::msg::Pose> &target_poses)
         {
+            const double jump_threshold = 0.0;
+            const double eef_step = 0.01;
+            double fraction = move_group.computeCartesianPath(target_poses, eef_step, jump_threshold, trajectory);
+            if (fraction == 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        bool cartesian_path_planner(moveit_msgs::msg::RobotTrajectory &trajectory, const std::vector<double>& start_joints, std::vector<geometry_msgs::msg::Pose> &target_poses)
+        {
+            start_state->setJointGroupPositions(joint_model_group, start_joints);
+            move_group.setStartState(*start_state);
             const double jump_threshold = 0.0;
             const double eef_step = 0.01;
             double fraction = move_group.computeCartesianPath(target_poses, eef_step, jump_threshold, trajectory);

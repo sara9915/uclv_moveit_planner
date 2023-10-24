@@ -1,5 +1,6 @@
 #request
 geometry_msgs/PoseStamped pose
+float64[] start_joints
 string planning_type
 string target_frame
 ---
