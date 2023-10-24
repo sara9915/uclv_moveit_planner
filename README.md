@@ -2,7 +2,7 @@
 The uclv_moveit_planner package provides a ROS 2 node that plans trajectories using MoveIt! and allows to execute them when successfully planned. The repository consists of a package, *uclv_moveit_planner_interface*, that includes the node interfaces (.srv and .action files) and a package, *uclv_moveit_planner_ros2*, that implements service and action to plan and execute trajectory under MoveIt2.
 
 ## Installation
-Clone the repository into your workspace and build it using colcon build. Note that you need to build also the source code of MoveIt 2 if you haven’t already (follows [instruction](https://moveit.picknik.ai/main/doc/tutorials/getting_started/getting_started.html)).
+Clone the repository into your workspace and build it using colcon build. Note that you need to install MoveIt 2 if you haven’t already (follows [instruction](https://moveit.picknik.ai/main/doc/tutorials/getting_started/getting_started.html) or get it by runnin ```sudo apt install ros-humble-moveit ```).
 ```bash
 cd <your_workspace>/src
 git clone https://github.com/sara9915/uclv_moveit_planner.git
@@ -28,3 +28,5 @@ ros2 run uclv_moveit_planner execute_traj_action_server
 ```
 This will start the execute_traj_action_server node, which provides the execute_traj action. The action takes a TrajAction goal message, which contains the trajectory to execute, and returns a TrajAction result message, which indicates whether the execution was successful.
 
+## Demo
+Some demos are available to test the planner and the execution of the trajectory in simulation on MoveIt2. The demos are developed by using the *yaskawa_moveit_config_ros2* repository and the *gazebo_simulation_ros2* package (you can install all the required dependencies by using the provided https.rosinstall file). 
