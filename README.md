@@ -1,8 +1,8 @@
 # uclv_moveit_planner
-The uclv_moveit_planner package provides a ROS 2 node that plans trajectories using MoveIt and allows to execute them when successfully planned.
+The uclv_moveit_planner package provides a ROS 2 node that plans trajectories using MoveIt! and allows to execute them when successfully planned. The repository consists of a package, *uclv_moveit_planner_interface*, that includes the node interfaces (.srv and .action files) and a package, *uclv_moveit_planner_ros2*, that implements service and action to plan and execute trajectory under MoveIt2.
 
 ## Installation
-Clone the repository into your workspace and build it using colcon build.
+Clone the repository into your workspace and build it using colcon build. Note that you need to build also the source code of MoveIt 2 if you haven’t already (follows [instruction](https://moveit.picknik.ai/main/doc/tutorials/getting_started/getting_started.html)).
 ```bash
 cd <your_workspace>/src
 git clone https://github.com/sara9915/uclv_moveit_planner.git
