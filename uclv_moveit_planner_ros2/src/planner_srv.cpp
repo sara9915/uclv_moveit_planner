@@ -60,6 +60,7 @@ namespace uclv
         void handle_service_request(const std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Request> request,
                                     std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Response> response)
         {
+            std::cout << "Planning type: " << planner_moveit_->planner_type << std::endl;
             bool success = false;
             moveit_msgs::msg::RobotTrajectory traj_;
             auto target_pose = planner_moveit_->set_target_frame(this->shared_from_this(), request->target_frame, request->pose);

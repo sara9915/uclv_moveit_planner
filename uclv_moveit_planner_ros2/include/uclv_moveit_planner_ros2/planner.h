@@ -51,6 +51,9 @@ namespace uclv
 
             update_planning_parameters(planning_time_, vel_scaling_, acc_scaling_, planner_type_);
 
+            move_group.setNumPlanningAttempts(10);
+            move_group.setReplanAttempts(10);
+
             const moveit::core::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
             start_state = moveit::core::RobotStatePtr(new moveit::core::RobotState(kinematic_model));
 
@@ -79,6 +82,7 @@ namespace uclv
             this->move_group.setMaxAccelerationScalingFactor(this->acc_scaling);
             this->move_group.setPlanningTime(this->planning_time);
             this->move_group.setPlannerId(this->planner_type);
+            // this->move_group.setPlannerId("");
         }
 
         bool joint_path_planner(moveit::planning_interface::MoveGroupInterface::Plan &plan, const std::vector<double> &target_joint_group)
@@ -181,10 +185,13 @@ namespace uclv
             }
         }
 
-        bool cartesian_path_planner(moveit_msgs::msg::RobotTrajectory &trajectory, const std::vector<double>& start_joints, std::vector<geometry_msgs::msg::Pose> &target_poses)
+        bool cartesian_path_planner(moveit_msgs::msg::RobotTrajectory &trajectory, const std::vector<double> &start_joints, std::vector<geometry_msgs::msg::Pose> &target_poses)
         {
             start_state->setJointGroupPositions(joint_model_group, start_joints);
             move_group.setStartState(*start_state);
+            move_group.setEndEffectorLink("tool0");
+            std::cout << "PLANNING TIME: " << move_group.getPlanningTime() << std::endl;
+            std::cout << "PLANNER TYPE: " << move_group.getPlannerId() << std::endl;
             const double jump_threshold = 0.0;
             const double eef_step = 0.01;
             double fraction = move_group.computeCartesianPath(target_poses, eef_step, jump_threshold, trajectory);
@@ -219,7 +226,11 @@ namespace uclv
             Eigen::Isometry3d base_T_target = uclv::geometry_2_eigen(base_T_target_);
             Eigen::Isometry3d base_T_source(base_T_target * target_T_source);
 
-            return uclv::eigen_2_geometry(base_T_source);
+            auto pose_return = uclv::eigen_2_geometry(base_T_source);
+            auto norm_quat = uclv::normalize_quaternion(pose_return.orientation);
+            pose_return.orientation = norm_quat;
+
+            return pose_return;
         }
 
         void execute(const moveit_msgs::msg::RobotTrajectory &trajectory)

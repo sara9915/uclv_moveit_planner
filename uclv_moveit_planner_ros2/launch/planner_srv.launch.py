@@ -39,7 +39,7 @@ def generate_launch_description():
 
     planner_type_arg = DeclareLaunchArgument(
         name='planner_type',
-        default_value= "RRTConnect",
+        default_value= "RRTstarkConfigDefault",
         description='Planner type'
     )
 

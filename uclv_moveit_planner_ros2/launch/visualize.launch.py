@@ -37,7 +37,8 @@ def generate_launch_description():
                                    '-entity', 'my_bot'],
                         output='screen')
 
-    moveit_config = MoveItConfigsBuilder("motoman_sia5f", package_name="yaskawa_moveit_config_ros2").to_moveit_configs()
+    moveit_config = MoveItConfigsBuilder("motoman_sia5f", package_name="yaskawa_moveit_config_ros2").planning_pipelines(
+            pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"]).to_moveit_configs()
 
 
     # Run the nodes
