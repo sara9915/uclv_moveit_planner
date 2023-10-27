@@ -1,0 +1,7 @@
+#request
+string type #attach or detach
+string obj_id
+string link_name_to_attach
+---
+#response
+bool success

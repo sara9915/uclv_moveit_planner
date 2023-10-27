@@ -12,7 +12,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(uclv_utilities REQUIRED)
 find_package(uclv_moveit_planner_interface REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
-
+find_package(moveit_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 if(BUILD_TESTING)
@@ -28,10 +28,13 @@ if(BUILD_TESTING)
 endif()
 
 include_directories(include)
+
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
+
 
 
 add_executable(test_planner src/test_planner.cpp)
@@ -63,6 +66,12 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+ament_export_include_directories(include)
 
 
 ament_package()

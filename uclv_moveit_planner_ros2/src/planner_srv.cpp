@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include "uclv_moveit_planner_interface/srv/planner_srv.hpp"
+#include "uclv_moveit_planner_interface/srv/attach_detach_srv.hpp"
 #include "uclv_moveit_planner_ros2/planner.h"
 
 namespace uclv
@@ -40,11 +41,17 @@ namespace uclv
 
                             planner_moveit_ = std::make_shared<PlannerMoveIt>(this->shared_from_this(), parameters.at(4).as_string(), parameters.at(0).as_double(), parameters.at(1).as_double(), parameters.at(2).as_double(), parameters.at(3).as_string());
 
-                            // Create the service
+                            // Create the service for the planning task
                             std::cout << BOLDGREEN << "Creating planner service..." << RESET << std::endl;
                             planner_service_ = this->create_service<uclv_moveit_planner_interface::srv::PlannerSrv>(
                                 "planner_service",
-                                std::bind(&PlannerService::handle_service_request, this, std::placeholders::_1, std::placeholders::_2)); })
+                                std::bind(&PlannerService::handle_service_request_planner, this, std::placeholders::_1, std::placeholders::_2));
+
+                            // Create the service for the attach/detach task
+                            std::cout << BOLDGREEN << "Creating obj service..." << RESET << std::endl;
+                            obj_service_ = this->create_service<uclv_moveit_planner_interface::srv::AttachDetachSrv>(
+                                "obj_service",
+                                std::bind(&PlannerService::handle_service_request_obj, this, std::placeholders::_1, std::placeholders::_2)); })
                 .detach();
 
             std::cout << BOLDGREEN << "Planner service ready!" << RESET << std::endl;
@@ -57,8 +64,8 @@ namespace uclv
          * @param response The response data for the service. It contains the trajectory and the success status.
          * @return void
          */
-        void handle_service_request(const std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Request> request,
-                                    std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Response> response)
+        void handle_service_request_planner(const std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Request> request,
+                                            std::shared_ptr<uclv_moveit_planner_interface::srv::PlannerSrv::Response> response)
         {
             std::cout << "Planning type: " << planner_moveit_->planner_type << std::endl;
             bool success = false;
@@ -117,12 +124,44 @@ namespace uclv
                 std::cout << BOLDRED << "Planning failed!" << RESET << std::endl;
         }
 
+        void handle_service_request_obj(const std::shared_ptr<uclv_moveit_planner_interface::srv::AttachDetachSrv::Request> request,
+                                        std::shared_ptr<uclv_moveit_planner_interface::srv::AttachDetachSrv::Response> response)
+        {
+            bool success;
+            if (request->type == "attach")
+            {
+                if (request->link_name_to_attach.empty())
+                {
+                    success = planner_moveit_->attachCollisionObj(request->obj_id);
+                }
+                else
+                {
+                    success = planner_moveit_->attachCollisionObj(request->obj_id, request->link_name_to_attach);
+                }
+            }
+            else if (request->type == "detach")
+            {
+                success = planner_moveit_->detachCollisionObj(request->obj_id);
+            }
+            else
+            {
+                std::cout << BOLDRED << "Invalid attach/detach type! Allowed types are: 'attach' or 'detach' " << RESET << std::endl;
+            }
+
+            response->success = success;
+            if (success)
+                std::cout << BOLDGREEN << "Attach/detach success!" << RESET << std::endl;
+            else
+                std::cout << BOLDRED << "Attach/detach failed!" << RESET << std::endl;
+        }
+
         void set_planner_params(const double &planning_time, const double &vel_scaling, const double &acc_scaling, const std::string &planner_type)
         {
             planner_moveit_->update_planning_parameters(planning_time, vel_scaling, acc_scaling, planner_type);
         }
 
         rclcpp::Service<uclv_moveit_planner_interface::srv::PlannerSrv>::SharedPtr planner_service_;
+        rclcpp::Service<uclv_moveit_planner_interface::srv::AttachDetachSrv>::SharedPtr obj_service_;
         std::shared_ptr<PlannerMoveIt> planner_moveit_;
         std::vector<rclcpp::Parameter> parameters;
     };

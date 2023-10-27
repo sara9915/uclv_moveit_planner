@@ -242,6 +242,16 @@ namespace uclv
             else
                 return;
         }
+
+        bool attachCollisionObj(const std::string &obj_id, const std::string &link_name = "ee_fringers")
+        {
+            return move_group.attachObject(obj_id, link_name);
+        }
+
+        bool detachCollisionObj(const std::string &obj_id)
+        {
+            return move_group.detachObject(obj_id);
+        }
     };
 
 }
