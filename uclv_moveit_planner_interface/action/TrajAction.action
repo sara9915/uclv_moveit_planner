@@ -1,5 +1,9 @@
 # Request
-moveit_msgs/RobotTrajectory traj
+moveit_msgs/RobotTrajectory[] traj
+bool simulation 
+string topic_robot ""
+float64 rate 50.0
+float64 scale_factor 1.0
 ---
 # Result
 bool success

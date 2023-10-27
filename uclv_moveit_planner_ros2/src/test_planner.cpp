@@ -104,7 +104,7 @@ Translation: [0.183, -0.008, 0.511]
         if (planner.cartesian_path_planner(trajectory, planner.move_group.getCurrentJointValues(), target_pose_vector))
         {
             std::cout << BOLDGREEN << "Planning Success" << RESET << std::endl;
-            planner.execute(trajectory);
+            planner.execute_sim(trajectory);
         }
         else
         {

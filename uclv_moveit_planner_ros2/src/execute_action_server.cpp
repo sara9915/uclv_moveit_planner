@@ -77,7 +77,6 @@ namespace uclv
             const rclcpp_action::GoalUUID &uuid,
             std::shared_ptr<const TrajAction::Goal> goal)
         {
-            RCLCPP_INFO(this->get_logger(), "Received goal request for a trajectory of %d points ", int(goal->traj.joint_trajectory.points.size()));
             (void)uuid;
             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
         }
@@ -112,7 +111,23 @@ namespace uclv
                 RCLCPP_INFO(this->get_logger(), "Goal canceled");
                 return;
             }
-            planner_moveit_->execute(goal->traj);
+
+            if (goal->simulation)
+            {
+                for (int i = 0; i < int(goal->traj.size()); i++)
+                {
+                    planner_moveit_->execute_sim(goal->traj.at(i));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < int(goal->traj.size()); i++)
+                {
+                    // Execute the trajectory (blocking
+                }
+                uclv::askContinue("EXECUTION ON REAL ROBOT");
+                planner_moveit_->execute_robot(this->shared_from_this(), goal->traj.at(0), goal->scale_factor, goal->rate, goal->topic_robot);
+            }
 
             // Check if goal is done
             if (rclcpp::ok())

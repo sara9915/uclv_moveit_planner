@@ -102,8 +102,9 @@ public:
         }
 
         auto goal_msg = TrajAction_::Goal();
-
-        goal_msg.traj = traj;
+        std::vector<moveit_msgs::msg::RobotTrajectory> traj_vec;
+        traj_vec.push_back(traj);
+        goal_msg.traj = traj_vec;
         std::cout << BOLDWHITE << "Sending goal to the action server" << RESET << std::endl;
 
         auto send_goal_options = rclcpp_action::Client<TrajAction_>::SendGoalOptions();

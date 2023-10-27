@@ -8,6 +8,9 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "geometry_msgs/geometry_msgs/msg/pose.h"
+#include "sensor_msgs/msg/joint_state.hpp"
+
+#include "builtin_interfaces/msg/duration.hpp"
 
 namespace uclv
 {
@@ -233,14 +236,106 @@ namespace uclv
             return pose_return;
         }
 
-        void execute(const moveit_msgs::msg::RobotTrajectory &trajectory)
+        void execute_sim(const moveit_msgs::msg::RobotTrajectory &trajectory)
         {
-            if (uclv::askContinue("EXECUTION"))
+            if (uclv::askContinue("EXECUTION IN SIMULATION"))
             {
                 move_group.execute(trajectory);
             }
             else
                 return;
+        }
+
+        double interpolate_traj(const moveit_msgs::msg::RobotTrajectory &trajectory, const double scale_factor, Eigen::Matrix<double, 6, -1>& coeff, int j)
+        {
+            // coeff_q1 coeff_q2 coeff_q3 ... coeff_q7
+            //  a5
+            //  a4
+            //  ...
+            //  a0
+
+            // coeff.resize(6, this->num_joints);
+            std::vector<sensor_msgs::msg::JointState> joint_cmd_vect;
+
+            double tf = 0;
+            auto dur_next = (trajectory.joint_trajectory.points[j + 1].time_from_start).sec + (trajectory.joint_trajectory.points[j + 1].time_from_start).nanosec * pow(10, -9);
+            auto dur_prev = (trajectory.joint_trajectory.points[j].time_from_start).sec + (trajectory.joint_trajectory.points[j].time_from_start).nanosec * pow(10, -9);
+            tf = dur_next - dur_prev;
+
+            auto qi = trajectory.joint_trajectory.points[j].positions;
+            auto qf = trajectory.joint_trajectory.points[j + 1].positions;
+
+            auto qi_dot = trajectory.joint_trajectory.points[j].velocities;
+            auto qf_dot = trajectory.joint_trajectory.points[j + 1].velocities;
+
+            auto qi_dot_dot = trajectory.joint_trajectory.points[j].accelerations;
+            auto qf_dot_dot = trajectory.joint_trajectory.points[j + 1].accelerations;
+
+            if (scale_factor != 1.0)
+            {
+                tf = tf * scale_factor;
+                for (int m = 0; m < int(qi.size()); m++)
+                {
+                    qi_dot[m] = qi_dot[m] / scale_factor;
+                    qi_dot_dot[m] = qi_dot_dot[m] / pow(scale_factor, 2);
+
+                    qf_dot[m] = qf_dot[m] / scale_factor;
+                    qf_dot_dot[m] = qf_dot_dot[m] / pow(scale_factor, 2);
+                }
+            }
+
+            update_coeff(coeff, tf, qi, qi_dot, qi_dot_dot, qf, qf_dot, qf_dot_dot);
+
+            return tf;
+        }
+
+        void
+        execute_robot(rclcpp::Node::SharedPtr node_, const moveit_msgs::msg::RobotTrajectory &trajectory, double scale_factor, double rate, const std::string &topic_name)
+        {
+            // create the rate
+            rclcpp::Rate loop_rate(rate);
+            // Create a ROS2 publisher to publish the joint commands on topic 'topic name' at rate 'rate'
+            auto joint_cmd_pub = node_->create_publisher<sensor_msgs::msg::JointState>(topic_name, 1);
+
+            // Create the joint state msg
+            sensor_msgs::msg::JointState joint_cmd;
+            joint_cmd.position.resize(trajectory.joint_trajectory.points.at(0).positions.size());
+            joint_cmd.velocity.resize(trajectory.joint_trajectory.points.at(0).positions.size());
+            joint_cmd.name.resize(trajectory.joint_trajectory.points.at(0).positions.size());
+            joint_cmd.header = trajectory.joint_trajectory.header;
+            joint_cmd.name = trajectory.joint_trajectory.joint_names;
+
+            double tf = 0.0;
+            double t = 0.0;
+            Eigen::Matrix<double, 6, Eigen::Dynamic> coeff = Eigen::Matrix<double, 6, Eigen::Dynamic>::Zero(6, this->num_joints);
+            int num_points_traj = int(trajectory.joint_trajectory.points.size());
+
+            for (int j = 0; j < num_points_traj - 1; j++)
+            {
+
+                auto dur_next = (trajectory.joint_trajectory.points[j + 1].time_from_start).sec + (trajectory.joint_trajectory.points[j + 1].time_from_start).nanosec * pow(10, -9);
+                auto dur_prev = (trajectory.joint_trajectory.points[j].time_from_start).sec + (trajectory.joint_trajectory.points[j].time_from_start).nanosec * pow(10, -9);
+
+                tf = dur_next - dur_prev;
+                interpolate_traj(trajectory, scale_factor, coeff,j);
+
+                // Create a timer to publish the joint commands at the specified rate
+
+                double t0 = node_->get_clock()->now().seconds();
+                while (t <= tf)
+                {
+                    t = node_->get_clock()->now().seconds() - t0;
+                    for (int i = 0; i < this->num_joints; i++)
+                    {
+                        joint_cmd.position.at(i) = quintic_q(t, coeff, i);
+                        joint_cmd.velocity.at(i) = 0.0; // quintic_qdot(t, coeff, i);
+                    }
+
+                    joint_cmd_pub->publish(joint_cmd);
+                    std::cout << "Publishing..." << std::endl;
+                    loop_rate.sleep();
+                }
+            }
         }
 
         bool attachCollisionObj(const std::string &obj_id, const std::string &link_name = "ee_fringers")
@@ -253,5 +348,4 @@ namespace uclv
             return move_group.detachObject(obj_id);
         }
     };
-
 }
