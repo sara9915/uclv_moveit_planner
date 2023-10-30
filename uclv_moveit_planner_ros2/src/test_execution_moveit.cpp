@@ -3,6 +3,7 @@
 #include "uclv_moveit_planner_interface/action/traj_action.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "uclv_utilities/color.h"
+#include "uclv_utilities/utilities.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -18,6 +19,8 @@ public:
 
     DemoNode() : Node("demo_node")
     {
+        // create node
+        rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("tf_node"); 
         // Create the service client to call the planner service
         this->planner_client_ = create_client<uclv_moveit_planner_interface::srv::PlannerSrv>("planner_service", rmw_qos_profile_services_default);
 
@@ -37,49 +40,70 @@ public:
 
         // Call the planner service
         auto planner_request = std::make_shared<uclv_moveit_planner_interface::srv::PlannerSrv::Request>();
+        geometry_msgs::msg::TransformStamped transform;
 
-        // - Translation: [0.756, -0.069, 0.681]
-        // - Rotation: in Quaternion [0.490, 0.510, -0.506, -0.495]
-        planner_request->planning_type = "joint";
-        planner_request->target_frame = "push_extension";
-        planner_request->pose.pose.position.x = 0.756;
-        planner_request->pose.pose.position.y = -0.069;
-        planner_request->pose.pose.position.z = 0.681;
-        planner_request->pose.pose.orientation.x = 0.490;
-        planner_request->pose.pose.orientation.y = 0.510;
-        planner_request->pose.pose.orientation.z = -0.506;
-        planner_request->pose.pose.orientation.w = -0.495;
-        planner_request->start_joints = std::vector<double>();
+        bool get_actual_pose = uclv::getTransform(node, "base_link", "push_extension", transform);
 
-        auto planner_response = planner_client_->async_send_request(planner_request);
-
-        // Wait for the service response
-        if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), planner_response) !=
-            rclcpp::FutureReturnCode::SUCCESS)
+        if (get_actual_pose)
         {
-            RCLCPP_ERROR(get_logger(), "Failed to call planner service");
-            return;
-        }
+            planner_request->planning_type = "cartesian";
+            planner_request->target_frame = "push_extension";
+            planner_request->pose.pose.position.x = transform.transform.translation.x - 0.1;
+            planner_request->pose.pose.position.y = transform.transform.translation.y;
+            planner_request->pose.pose.position.z = transform.transform.translation.z;
+            planner_request->pose.pose.orientation.x = transform.transform.rotation.x;
+            planner_request->pose.pose.orientation.y = transform.transform.rotation.y;
+            planner_request->pose.pose.orientation.z = transform.transform.rotation.z;
+            planner_request->pose.pose.orientation.w = transform.transform.rotation.w;
+            planner_request->start_joints = std::vector<double>();
 
-        auto planner_response_ = planner_response.get();
+            // - Translation: [0.756, -0.069, 0.681]
+            // - Rotation: in Quaternion [0.490, 0.510, -0.506, -0.495]
+            // planner_request->planning_type = "joint";
+            // planner_request->target_frame = "push_extension";
+            // planner_request->pose.pose.position.x = 0.756;
+            // planner_request->pose.pose.position.y = -0.069;
+            // planner_request->pose.pose.position.z = 0.681;
+            // planner_request->pose.pose.orientation.x = 0.490;
+            // planner_request->pose.pose.orientation.y = 0.510;
+            // planner_request->pose.pose.orientation.z = -0.506;
+            // planner_request->pose.pose.orientation.w = -0.495;
+            // planner_request->start_joints = std::vector<double>();
 
-        // Get the trajectory from the response
-        traj = planner_response_->traj;
-        bool success_ = planner_response_->success;
+            auto planner_response = planner_client_->async_send_request(planner_request);
 
-        if (success_)
-        {
-            std::cout << BOLDGREEN << "Planning successfully created " << RESET << std::endl;
-            // Send goal to the action server
-            this->timer_ = this->create_wall_timer(
-                std::chrono::milliseconds(500),
-                std::bind(&DemoNode::send_goal, this));
+            // Wait for the service response
+            if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), planner_response) !=
+                rclcpp::FutureReturnCode::SUCCESS)
+            {
+                RCLCPP_ERROR(get_logger(), "Failed to call planner service");
+                return;
+            }
+
+            auto planner_response_ = planner_response.get();
+
+            // Get the trajectory from the response
+            traj = planner_response_->traj;
+            bool success_ = planner_response_->success;
+
+            if (success_)
+            {
+                std::cout << BOLDGREEN << "Planning successfully created " << RESET << std::endl;
+                // Send goal to the action server
+                this->timer_ = this->create_wall_timer(
+                    std::chrono::milliseconds(500),
+                    std::bind(&DemoNode::send_goal, this));
+            }
+            else
+            {
+                std::cout << BOLDRED << "Planning failed!" << RESET << std::endl;
+                rclcpp::shutdown();
+            }
         }
         else
         {
-            std::cout << BOLDRED << "Planning failed!" << RESET << std::endl;
+            std::cout << BOLDRED << "Unable to get the actual pose of the robot!" << RESET << std::endl;
             rclcpp::shutdown();
-
         }
 
         // Print the joint positions of the trajectory
@@ -105,6 +129,10 @@ public:
         std::vector<moveit_msgs::msg::RobotTrajectory> traj_vec;
         traj_vec.push_back(traj);
         goal_msg.traj = traj_vec;
+        goal_msg.topic_robot = "/motoman/joint_ll_control";
+        goal_msg.simulation = false;
+        goal_msg.rate = 50.0;
+        goal_msg.scale_factor = 5.0;
         std::cout << BOLDWHITE << "Sending goal to the action server" << RESET << std::endl;
 
         auto send_goal_options = rclcpp_action::Client<TrajAction_>::SendGoalOptions();

@@ -246,7 +246,7 @@ namespace uclv
                 return;
         }
 
-        double interpolate_traj(const moveit_msgs::msg::RobotTrajectory &trajectory, const double scale_factor, Eigen::Matrix<double, 6, -1>& coeff, int j)
+        double interpolate_traj(const moveit_msgs::msg::RobotTrajectory &trajectory, const double &scale_factor, Eigen::Matrix<double, 6, -1> &coeff, int j)
         {
             // coeff_q1 coeff_q2 coeff_q3 ... coeff_q7
             //  a5
@@ -290,7 +290,7 @@ namespace uclv
         }
 
         void
-        execute_robot(rclcpp::Node::SharedPtr node_, const moveit_msgs::msg::RobotTrajectory &trajectory, double scale_factor, double rate, const std::string &topic_name)
+        execute_robot(rclcpp::Node::SharedPtr node_, const moveit_msgs::msg::RobotTrajectory &trajectory, const double &scale_factor, const double &rate, const std::string &topic_name)
         {
             // create the rate
             rclcpp::Rate loop_rate(rate);
@@ -312,15 +312,16 @@ namespace uclv
 
             for (int j = 0; j < num_points_traj - 1; j++)
             {
+                
+                // auto dur_next = (trajectory.joint_trajectory.points[j + 1].time_from_start).sec + (trajectory.joint_trajectory.points[j + 1].time_from_start).nanosec * pow(10, -9);
+                // auto dur_prev = (trajectory.joint_trajectory.points[j].time_from_start).sec + (trajectory.joint_trajectory.points[j].time_from_start).nanosec * pow(10, -9);
 
-                auto dur_next = (trajectory.joint_trajectory.points[j + 1].time_from_start).sec + (trajectory.joint_trajectory.points[j + 1].time_from_start).nanosec * pow(10, -9);
-                auto dur_prev = (trajectory.joint_trajectory.points[j].time_from_start).sec + (trajectory.joint_trajectory.points[j].time_from_start).nanosec * pow(10, -9);
-
-                tf = dur_next - dur_prev;
-                interpolate_traj(trajectory, scale_factor, coeff,j);
+                // tf = dur_next - dur_prev;
+                // std::cout << "FOR IT:  " << j << "      tf: " << tf << std::endl;
+                tf = interpolate_traj(trajectory, scale_factor, coeff, j);
 
                 // Create a timer to publish the joint commands at the specified rate
-
+                const double sleep_time = 1 / rate;
                 double t0 = node_->get_clock()->now().seconds();
                 while (t <= tf)
                 {
@@ -332,9 +333,13 @@ namespace uclv
                     }
 
                     joint_cmd_pub->publish(joint_cmd);
-                    std::cout << "Publishing..." << std::endl;
-                    loop_rate.sleep();
+                    std::cout << "Publishing " << j << "/" << num_points_traj << " " << t << "/" << tf << std::endl;
+
+                    // sleep for (1/rate) seconds
+                    node_->get_clock()->sleep_for(std::chrono::seconds(int(sleep_time)));
+                    // loop_rate.sleep();
                 }
+                t = 0;
             }
         }
 
