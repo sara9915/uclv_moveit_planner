@@ -238,12 +238,16 @@ namespace uclv
 
         void execute_sim(const moveit_msgs::msg::RobotTrajectory &trajectory)
         {
-            if (uclv::askContinue("EXECUTION IN SIMULATION"))
+            bool ask = uclv::askContinue("EXECUTION IN SIMULATION");
+            if (ask)
             {
                 move_group.execute(trajectory);
             }
             else
+            {
+                std::cout << BOLDRED << "Aborted execution!" << RESET << std::endl;
                 return;
+            }
         }
 
         double interpolate_traj(const moveit_msgs::msg::RobotTrajectory &trajectory, const double &scale_factor, Eigen::Matrix<double, 6, -1> &coeff, int j)
@@ -312,12 +316,6 @@ namespace uclv
 
             for (int j = 0; j < num_points_traj - 1; j++)
             {
-                
-                // auto dur_next = (trajectory.joint_trajectory.points[j + 1].time_from_start).sec + (trajectory.joint_trajectory.points[j + 1].time_from_start).nanosec * pow(10, -9);
-                // auto dur_prev = (trajectory.joint_trajectory.points[j].time_from_start).sec + (trajectory.joint_trajectory.points[j].time_from_start).nanosec * pow(10, -9);
-
-                // tf = dur_next - dur_prev;
-                // std::cout << "FOR IT:  " << j << "      tf: " << tf << std::endl;
                 tf = interpolate_traj(trajectory, scale_factor, coeff, j);
 
                 // Create a timer to publish the joint commands at the specified rate

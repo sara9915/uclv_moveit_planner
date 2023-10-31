@@ -29,4 +29,4 @@ ros2 run uclv_moveit_planner execute_traj_action_server
 This will start the execute_traj_action_server node, which provides the execute_traj action. The action takes a TrajAction goal message, which contains the trajectory to execute, and returns a TrajAction result message, which indicates whether the execution was successful.
 
 ## Demo
-Some demos are available to test the planner and the execution of the trajectory in simulation on MoveIt2. The demos are developed by using the *yaskawa_moveit_config_ros2* repository and the *gazebo_simulation_ros2* package (you can install all the required dependencies by using the provided https.rosinstall file). 
+Some demos are available to test the planner and the execution of the trajectory in simulation on MoveIt2. The demos are developed by using the *yaskawa_moveit_config_ros2* repository and the *uclv_yaskawa_simulation* package (you can install all the required dependencies by using the provided https.rosinstall file). 

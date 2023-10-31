@@ -130,7 +130,7 @@ public:
         traj_vec.push_back(traj);
         goal_msg.traj = traj_vec;
         goal_msg.topic_robot = "/motoman/joint_ll_control";
-        goal_msg.simulation = false;
+        goal_msg.simulation = true;
         goal_msg.rate = 50.0;
         goal_msg.scale_factor = 5.0;
         std::cout << BOLDWHITE << "Sending goal to the action server" << RESET << std::endl;

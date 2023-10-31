@@ -29,8 +29,7 @@ namespace uclv
                 RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
             }
             this->parameters = parameters_client->get_parameters({"planning_time", "vel_scaling", "acc_scaling", "planner_type", "planning_group"});
-
-            // timer = this->create_wall_timer(std::chrono::seconds(2), std::bind(&ExecuteTrajActionServer::initialization, this));
+            this->simulation = this->get_parameter("simulation").as_bool();
 
             std::thread([this]()
                         {
@@ -42,7 +41,7 @@ namespace uclv
                             this->action_server_ = rclcpp_action::create_server<TrajAction>(
                                 this,
                                 "trajectory_execution_as",
-                                std::bind(&ExecuteTrajActionServer::handle_goal, this, _1, _2),
+                                std::bind(&ExecuteTrajActionServer::handle_goal, this, _1),
                                 std::bind(&ExecuteTrajActionServer::handle_cancel, this, _1),
                                 std::bind(&ExecuteTrajActionServer::handle_accepted, this, _1)); })
                 .detach();
@@ -55,27 +54,11 @@ namespace uclv
         std::thread executor_thread_;
         std::shared_ptr<PlannerMoveIt> planner_moveit_;
         std::vector<rclcpp::Parameter> parameters;
-
-        // void initialization()
-        // {
-        //     using namespace std::placeholders;
-        //     planner_moveit_ = std::make_shared<PlannerMoveIt>(this->shared_from_this(), parameters.at(4).as_string(), parameters.at(0).as_double(), parameters.at(1).as_double(), parameters.at(2).as_double(), parameters.at(3).as_string());
-
-        //     this->action_server_ = rclcpp_action::create_server<TrajAction>(
-        //         this,
-        //         "TrajAction",
-        //         std::bind(&ExecuteTrajActionServer::handle_goal, this, _1, _2),
-        //         std::bind(&ExecuteTrajActionServer::handle_cancel, this, _1),
-        //         std::bind(&ExecuteTrajActionServer::handle_accepted, this, _1));
-
-        //     // reset timer
-        //     timer->cancel();
-        // }
+        bool simulation;
 
         rclcpp_action::GoalResponse
         handle_goal(
-            const rclcpp_action::GoalUUID &uuid,
-            std::shared_ptr<const TrajAction::Goal> goal)
+            const rclcpp_action::GoalUUID &uuid)
         {
             (void)uuid;
             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -112,7 +95,7 @@ namespace uclv
                 return;
             }
 
-            if (goal->simulation)
+            if (simulation)
             {
                 for (int i = 0; i < int(goal->traj.size()); i++)
                 {
@@ -125,8 +108,10 @@ namespace uclv
                 {
                     // Execute the trajectory (blocking
                 }
-                uclv::askContinue("EXECUTION ON REAL ROBOT");
-                planner_moveit_->execute_robot(this->shared_from_this(), goal->traj.at(0), goal->scale_factor, goal->rate, goal->topic_robot);
+                if (uclv::askContinue("EXECUTION ON REAL ROBOT"))
+                    planner_moveit_->execute_robot(this->shared_from_this(), goal->traj.at(0), goal->scale_factor, goal->rate, goal->topic_robot);
+                else
+                    std::cout << BOLDRED << "Aborted execution!" << RESET << std::endl;
             }
 
             // Check if goal is done
