@@ -9,4 +9,4 @@ float64 scale_factor 1.0
 bool success
 ---
 # Feedback
-int32 num_points_moved
+int32 progress

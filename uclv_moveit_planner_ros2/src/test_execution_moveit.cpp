@@ -20,7 +20,7 @@ public:
     DemoNode() : Node("demo_node")
     {
         // create node
-        rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("tf_node"); 
+        rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("tf_node");
         // Create the service client to call the planner service
         this->planner_client_ = create_client<uclv_moveit_planner_interface::srv::PlannerSrv>("planner_service", rmw_qos_profile_services_default);
 
@@ -130,7 +130,7 @@ public:
         traj_vec.push_back(traj);
         goal_msg.traj = traj_vec;
         goal_msg.topic_robot = "/motoman/joint_ll_control";
-        goal_msg.simulation = true;
+        goal_msg.simulation = false;
         goal_msg.rate = 50.0;
         goal_msg.scale_factor = 5.0;
         std::cout << BOLDWHITE << "Sending goal to the action server" << RESET << std::endl;
@@ -138,6 +138,8 @@ public:
         auto send_goal_options = rclcpp_action::Client<TrajAction_>::SendGoalOptions();
         send_goal_options.goal_response_callback =
             std::bind(&DemoNode::goal_response_callback, this, _1);
+        send_goal_options.feedback_callback =
+            std::bind(&DemoNode::feedback_callback, this, _1, _2);
         send_goal_options.result_callback =
             std::bind(&DemoNode::result_callback, this, _1);
         this->traj_action_client_->async_send_goal(goal_msg, send_goal_options);
@@ -198,6 +200,13 @@ private:
             std::cout << BOLDRED << "Trajectory execution failed!" << RESET << std::endl;
 
         rclcpp::shutdown();
+    }
+
+    void feedback_callback(
+        GoalHandleTrajAction::SharedPtr,
+        const std::shared_ptr<const TrajAction_::Feedback> feedback)
+    {
+        std::cout << "Feedback received: " << feedback->progress << std::endl;
     }
 };
 

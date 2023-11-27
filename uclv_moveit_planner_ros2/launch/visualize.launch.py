@@ -40,11 +40,20 @@ def generate_launch_description():
     moveit_config = MoveItConfigsBuilder("motoman_sia5f", package_name="yaskawa_moveit_config_ros2").planning_pipelines(
             pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"]).to_moveit_configs()
 
+    # Include the launch file demo_sim from yaskawa_moveit_config_ros2
+    moveit_demo = (
+       IncludeLaunchDescription(
+           PythonLaunchDescriptionSource(
+               str(moveit_config.package_path / "launch/demo_sim.launch.py")
+           ),
+       )
+    )
 
     # Run the nodes
     return LaunchDescription([
-        generate_demo_launch(moveit_config),
+        # generate_demo_launch(moveit_config),
         gazebo_launch_arg,
         launch_gazebo,
-        spawn_entity
+        spawn_entity,
+        moveit_demo
     ])

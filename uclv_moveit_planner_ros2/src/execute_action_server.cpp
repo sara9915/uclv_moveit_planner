@@ -82,8 +82,10 @@ namespace uclv
         void execute(const std::shared_ptr<GoalHandleTrajAction> goal_handle)
         {
             auto goal = goal_handle->get_goal();
-            // auto feedback = std::make_shared<TrajAction::Feedback>()->num_points_moved;
+            auto feedback = std::make_shared<TrajAction::Feedback>();
             auto result = std::make_shared<TrajAction::Result>();
+
+            auto & progress = feedback->progress; 
 
             std::cout << BOLDGREEN << "Trajectory execution started!" << RESET << std::endl;
 
@@ -100,24 +102,35 @@ namespace uclv
                 for (int i = 0; i < int(goal->traj.size()); i++)
                 {
                     planner_moveit_->execute_sim(goal->traj.at(i));
+                    progress = int32_t(i);
+                    // std::cout << BOLDMAGENTA << "Publishing feedback" << RESET << std::endl;
+                    goal_handle->publish_feedback(feedback);
                 }
+                result->success = true;
             }
             else
             {
                 for (int i = 0; i < int(goal->traj.size()); i++)
                 {
-                    // Execute the trajectory (blocking
+                    if (uclv::askContinue("EXECUTION ON REAL ROBOT"))
+                    {
+                        planner_moveit_->execute_robot(this->shared_from_this(), goal->traj.at(0), goal->scale_factor, goal->rate, goal->topic_robot);
+                        feedback->progress = i;
+                        // std::cout << BOLDMAGENTA << "Publishing feedback" << RESET << std::endl;
+                        goal_handle->publish_feedback(feedback);
+                        result->success = true;
+                    }
+                    else
+                    {
+                        std::cout << BOLDRED << "Aborted execution!" << RESET << std::endl;
+                        break;
+                    }
                 }
-                if (uclv::askContinue("EXECUTION ON REAL ROBOT"))
-                    planner_moveit_->execute_robot(this->shared_from_this(), goal->traj.at(0), goal->scale_factor, goal->rate, goal->topic_robot);
-                else
-                    std::cout << BOLDRED << "Aborted execution!" << RESET << std::endl;
             }
 
             // Check if goal is done
             if (rclcpp::ok())
             {
-                result->success = true;
                 goal_handle->succeed(result);
                 if (result->success)
                     std::cout << BOLDGREEN << "Trajectory execution finished successfully!" << RESET << std::endl;

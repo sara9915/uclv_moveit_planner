@@ -25,8 +25,8 @@ namespace uclv
         robot_model_loader::RobotModelLoader robot_model_loader;
 
         double planning_time = 10.0;
-        double vel_scaling = 1;
-        double acc_scaling = 1;
+        double vel_scaling = 0.1;
+        double acc_scaling = 0.1;
         int num_joints = 0;
         std::string planner_type = "RRTStar";
 
