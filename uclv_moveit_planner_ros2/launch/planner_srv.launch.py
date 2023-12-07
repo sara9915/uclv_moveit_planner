@@ -9,6 +9,9 @@ from launch.substitutions import Command, FindExecutable, LaunchConfiguration
 from launch.conditions import IfCondition
 from moveit_configs_utils import MoveItConfigsBuilder
 from moveit_configs_utils.launches import generate_demo_launch
+from moveit_configs_utils.launch_utils import (
+    DeclareBooleanLaunchArg,
+)
 
 
 def generate_launch_description():
@@ -18,6 +21,7 @@ def generate_launch_description():
     acc_scaling = LaunchConfiguration('acc_scaling')
     planner_type = LaunchConfiguration('planner_type')
     planning_group = LaunchConfiguration('planning_group')
+    simulation = LaunchConfiguration('simulation')
 
     planning_time_arg = DeclareLaunchArgument(
         name='planning_time',
@@ -49,6 +53,12 @@ def generate_launch_description():
         description='Planning group'
     )
 
+    simulation_arg = DeclareBooleanLaunchArg(
+        name='simulation',
+        default_value= True,
+        description='Simulation or real robot'
+    )
+
     # Run the nodes
     return LaunchDescription([
         planning_time_arg,
@@ -56,6 +66,7 @@ def generate_launch_description():
         acc_scaling_arg,
         planner_type_arg,
         planning_group_arg,
+        simulation_arg,
         Node(
             package='uclv_moveit_planner_ros2',
             executable='planner_srv',
@@ -68,6 +79,16 @@ def generate_launch_description():
                 {"acc_scaling": acc_scaling},
                 {"planner_type": planner_type},
                 {"planning_group": planning_group},
+            ],
+        ),
+        Node(
+            package='uclv_moveit_planner_ros2',
+            executable='execute_traj_as',
+            name='execute_traj_action_server',
+            output='screen',
+            emulate_tty=True,
+            parameters=[
+                {"simulation": simulation}
             ],
         )
     ])    
